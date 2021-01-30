@@ -12,48 +12,60 @@ pub struct CoverageVector {
     metadata: Vec<Vec<String>>,
 }
 
+// TODO: use generics or something cleaner
 impl CoverageVector {
     pub fn from_file(filepath: &str) -> CoverageVector {
-        let x = io::wrap_from_path(filepath);
-
-        CoverageVector::gen(x)
+        gen(io::wrap_from_path(filepath))
     }
 
     #[allow(dead_code)]
     fn from_str(data: &str) -> CoverageVector {
-        let x = io::wrap_from_str(data);
-
-        CoverageVector::gen(x)
+        gen(io::wrap_from_str(data))
     }
 
-    fn gen((headers, records): (Vec<String>, Vec<StringRecord>)) -> CoverageVector {
-        // get the index of where the data starts
-        let counter: usize = headers.iter().position(|x| x == FIRST_NODE).unwrap();
+    // get the data field as a matrix of Vec<Vec<f64>>
+    pub fn extract_data_matrix(&self) -> Vec<Vec<f64>> {
 
-        // TODO: use an iterator
-        let mut metadata: Vec<Vec<String>> = Vec::new();
-        let mut data: Vec<Vec<u64>> = Vec::new();
-        for record in &records {
-            let metadatum: Vec<String> = record
-                .iter()
-                .take(counter)
-                .map(|value| String::from(value))
-                .collect();
-            metadata.push(metadatum);
+        // is this efficient?
+        let vec_to_f64 = | v: &Vec<u64> | {
+            v.iter().map(|x| *x as f64).collect::<Vec<f64>>()
+        };
 
-            let datum: Vec<u64> = record
-                .iter()
-                .skip(counter)
-                .map(|value| value.parse::<u64>().unwrap())
-                .collect();
-            data.push(datum);
-        }
+        let data = &self.data;
 
-        CoverageVector {
-            headers,
-            data,
-            metadata,
-        }
+        data.iter()
+            .map(vec_to_f64)
+            .collect()
+    }
+}
+
+fn gen((headers, records): (Vec<String>, Vec<StringRecord>)) -> CoverageVector {
+    // get the index of where the data starts
+    let counter: usize = headers.iter().position(|x| x == FIRST_NODE).unwrap();
+
+    // TODO: use an iterator
+    let mut metadata: Vec<Vec<String>> = Vec::new();
+    let mut data: Vec<Vec<u64>> = Vec::new();
+    for record in &records {
+        let metadatum: Vec<String> = record
+            .iter()
+            .take(counter)
+            .map(|value| String::from(value))
+            .collect();
+        metadata.push(metadatum);
+
+        let datum: Vec<u64> = record
+            .iter()
+            .skip(counter)
+            .map(|value| value.parse::<u64>().unwrap())
+            .collect();
+        data.push(datum);
+    }
+
+    CoverageVector {
+        headers,
+        data,
+        metadata,
     }
 }
 
