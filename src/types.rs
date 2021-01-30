@@ -25,17 +25,12 @@ impl CoverageVector {
 
     // get the data field as a matrix of Vec<Vec<f64>>
     pub fn extract_data_matrix(&self) -> Vec<Vec<f64>> {
-
         // is this efficient?
-        let vec_to_f64 = | v: &Vec<u64> | {
-            v.iter().map(|x| *x as f64).collect::<Vec<f64>>()
-        };
+        let vec_to_f64 = |v: &Vec<u64>| v.iter().map(|x| *x as f64).collect::<Vec<f64>>();
 
         let data = &self.data;
 
-        data.iter()
-            .map(vec_to_f64)
-            .collect()
+        data.iter().map(vec_to_f64).collect()
     }
 }
 

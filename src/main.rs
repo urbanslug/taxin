@@ -1,7 +1,7 @@
 mod cli;
+mod distance;
 mod io;
 mod types;
-mod distance;
 
 use types::CoverageVector;
 

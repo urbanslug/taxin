@@ -1,7 +1,8 @@
-use std::cmp;
 use num::traits::Float;
+use std::cmp;
 use std::iter::Sum;
 
+use indicatif::{ProgressBar, ProgressStyle};
 
 fn pairwise_distance<'a, T: 'a + Float + Sum>(
     left: impl IntoIterator<Item = &'a T>,
@@ -14,25 +15,30 @@ fn pairwise_distance<'a, T: 'a + Float + Sum>(
         .sqrt()
 }
 
-pub fn eucledian<T: Float + Sum> (coverage_matrix: &Vec<Vec<T>>) -> Vec<Vec<T>> {
+pub fn eucledian<T: Float + Sum>(coverage_matrix: &Vec<Vec<T>>) -> Vec<Vec<T>> {
     let samples = coverage_matrix.len();
 
     // create a samples x samples distance matrix
-    let mut distance_matrix: Vec<Vec<T>> = vec![
-        vec![num::zero(); samples];
-        samples];
+    let mut distance_matrix: Vec<Vec<T>> = vec![vec![num::zero(); samples]; samples];
+
+    let bar = ProgressBar::new(samples as u64);
+    bar.set_style(ProgressStyle::default_bar()
+                  .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {bytes}/{total_bytes} ({eta})")
+                  .progress_chars("#>-"));
 
     // for each sample calculate its distance to every other
     for i in 0..samples {
+        bar.set_position(i as u64);
         for j in 0..samples {
             let dist: T = pairwise_distance(&coverage_matrix[i], &coverage_matrix[j]);
             distance_matrix[i][j] = dist;
         }
     }
 
+    bar.finish();
+
     distance_matrix
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -40,15 +46,24 @@ mod tests {
 
     #[test]
     fn test_eucledian_distance() {
-        let x1 = vec![102, 3,  394, 87].into_iter().map(|x| x as f64).collect();
-        let x2 =vec![67,  83, 124, 987].into_iter().map(|x| x as f64).collect();
-        let x3 = vec![900, 27, 45,  23].into_iter().map(|x| x as f64).collect();
+        let x1 = vec![102, 3, 394, 87]
+            .into_iter()
+            .map(|x| x as f64)
+            .collect();
+        let x2 = vec![67, 83, 124, 987]
+            .into_iter()
+            .map(|x| x as f64)
+            .collect();
+        let x3 = vec![900, 27, 45, 23]
+            .into_iter()
+            .map(|x| x as f64)
+            .collect();
         let m: Vec<Vec<f64>> = vec![x1, x2, x3];
 
         let k = vec![
             vec![0.0, 943.6763216272834, 873.6572554497559],
             vec![943.6763216272834, 0.0, 1277.7174961625908],
-            vec![873.6572554497559, 1277.7174961625908, 0.0]
+            vec![873.6572554497559, 1277.7174961625908, 0.0],
         ];
 
         assert_eq!(eucledian(&m), k);
@@ -57,8 +72,14 @@ mod tests {
     #[test]
     fn test_pairwise_distance() {
         // have uneven sized vectors
-        let f: Vec<f64> = vec![102, 3,  394, 87].into_iter().map(|x| x as f64).collect();
-        let s: Vec<f64> = vec![67,  83, 124, 987, 823].into_iter().map(|x| x as f64).collect();
+        let f: Vec<f64> = vec![102, 3, 394, 87]
+            .into_iter()
+            .map(|x| x as f64)
+            .collect();
+        let s: Vec<f64> = vec![67, 83, 124, 987, 823]
+            .into_iter()
+            .map(|x| x as f64)
+            .collect();
 
         // Different
         let precomputed_dist: f64 = pairwise_distance(&f, &s);
