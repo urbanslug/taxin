@@ -3,6 +3,7 @@ use std::cmp;
 use std::iter::Sum;
 
 use indicatif::{ProgressBar, ProgressStyle};
+use num_format::{Locale, ToFormattedString};
 
 fn pairwise_distance<'a, T: 'a + Float + Sum>(
     left: impl IntoIterator<Item = &'a T>,
@@ -17,14 +18,25 @@ fn pairwise_distance<'a, T: 'a + Float + Sum>(
 
 pub fn eucledian<T: Float + Sum>(coverage_matrix: &Vec<Vec<T>>) -> Vec<Vec<T>> {
     let samples = coverage_matrix.len();
+    let columns = coverage_matrix.get(0).unwrap_or(&Vec::new()).len();
+
+    println!(
+        "Dimensions: {} samples by approx {} nodes",
+        samples.to_formatted_string(&Locale::en),
+        columns.to_formatted_string(&Locale::en)
+    );
 
     // create a samples x samples distance matrix
     let mut distance_matrix: Vec<Vec<T>> = vec![vec![num::zero(); samples]; samples];
 
     let bar = ProgressBar::new(samples as u64);
-    bar.set_style(ProgressStyle::default_bar()
-                  .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {bytes}/{total_bytes} ({eta})")
-                  .progress_chars("#>-"));
+    let t =
+        "{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {bytes}/{total_bytes} ({eta})";
+    bar.set_style(
+        ProgressStyle::default_bar()
+            .template(t)
+            .progress_chars("#>-"),
+    );
 
     // for each sample calculate its distance to every other
     for i in 0..samples {
