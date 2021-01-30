@@ -15,7 +15,7 @@ fn main() {
     println!("Calculating pairwise distances");
     let _distance_matrix: Vec<Vec<f64>> = distance::eucledian(&m);
 
-    let _distance_matrix: Vec<Vec<f64>> = distance::eucledian_simd(&m);
+    // let _distance_matrix: Vec<Vec<f64>> = distance::eucledian_simd(&m);
 
     //println!("{:?}", _distance_matrix);
 

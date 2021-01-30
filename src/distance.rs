@@ -12,7 +12,7 @@ use rayon::prelude::*;
 use std::sync::Mutex;
 
 
-
+// Actually much slower
 fn pairwise_distance_simd(a: &Vec<f64>, b: &Vec<f64>) -> f64 {
     let zeroes = f64x4::splat(0_f64);
     let mut x = zeroes.clone();
