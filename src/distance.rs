@@ -11,16 +11,18 @@ use slipstream::Vector;
 use rayon::prelude::*;
 use std::sync::Mutex;
 
-#[allow(dead_code)]
+
+
 fn pairwise_distance_simd(a: &Vec<f64>, b: &Vec<f64>) -> f64 {
-    let mut x = f64x4::splat(0_f64);
+    let zeroes = f64x4::splat(0_f64);
+    let mut x = zeroes.clone();
+    let arr_pair = (&a[..], &b[..]);
 
-    let a = slipstream::vectorize_pad(&a[..], f64x4::splat(0_f64));
-    let b = slipstream::vectorize_pad(&b[..], f64x4::splat(0_f64));
-
-    for(l, r) in a.zip(b) {
-        x += l - r// num::pow(l - r, 2)
-    }
+    slipstream::vectorize_pad(arr_pair, (zeroes, zeroes))
+        .for_each(|(l, r)| {
+            let sub = l - r;
+            x += sub * sub;
+        });
 
     x.horizontal_sum()
 }
