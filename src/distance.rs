@@ -41,7 +41,7 @@ pub fn eucledian<T: Float + Sum>(coverage_matrix: &Vec<Vec<T>>) -> Vec<Vec<T>> {
     // for each sample calculate its distance to every other
     for i in 0..samples {
         bar.set_position(i as u64);
-        for j in 0..samples {
+        for j in i..samples {
             let dist: T = pairwise_distance(&coverage_matrix[i], &coverage_matrix[j]);
             distance_matrix[i][j] = dist;
         }
@@ -74,8 +74,8 @@ mod tests {
 
         let k = vec![
             vec![0.0, 943.6763216272834, 873.6572554497559],
-            vec![943.6763216272834, 0.0, 1277.7174961625908],
-            vec![873.6572554497559, 1277.7174961625908, 0.0],
+            vec![0.0, 0.0, 1277.7174961625908],
+            vec![0.0, 0.0, 0.0],
         ];
 
         assert_eq!(eucledian(&m), k);
