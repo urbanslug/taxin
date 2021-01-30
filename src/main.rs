@@ -15,7 +15,9 @@ fn main() {
     println!("Calculating pairwise distances");
     let _distance_matrix: Vec<Vec<f64>> = distance::eucledian(&m);
 
-    println!("{:?}", _distance_matrix);
+    let _distance_matrix: Vec<Vec<f64>> = distance::eucledian_simd(&m);
+
+    //println!("{:?}", _distance_matrix);
 
     // let mut writer = write_tsv(Path::join(dataset_dir, "coverage_10_samples_taxin_output.tsv"));
 

@@ -43,7 +43,7 @@ fn pairwise_distance<'a, T: 'a + Float + Sum>(
 }
 
 #[allow(dead_code)]
-fn eucledian_simd(coverage_matrix: &Vec<Vec<f64>>) -> Vec<Vec<f64>> {
+pub fn eucledian_simd(coverage_matrix: &Vec<Vec<f64>>) -> Vec<Vec<f64>> {
     let samples = coverage_matrix.len();
     let columns = coverage_matrix.get(0).unwrap_or(&Vec::new()).len();
 
