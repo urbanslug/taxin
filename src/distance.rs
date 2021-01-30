@@ -8,7 +8,6 @@ use num_format::{Locale, ToFormattedString};
 use slipstream::types::*;
 use slipstream::Vector;
 
-
 use rayon::prelude::*;
 use std::sync::Mutex;
 
@@ -24,16 +23,6 @@ fn pairwise_distance_simd(a: &Vec<f64>, b: &Vec<f64>) -> f64 {
     }
 
     x.horizontal_sum()
-}
-
-fn pairwise_distance_par(a: &Vec<f64>, b: &Vec<f64>) -> f64 {
-
-    a.par_iter().
-        zip(b)
-        .map(|(a, b)| num::pow(*a - *b, 2))
-        .sum::<f64>()
-        .sqrt()
-
 }
 
 fn pairwise_distance<'a, T: 'a + Float + Sum>(
@@ -79,7 +68,7 @@ pub fn eucledian_simd(coverage_matrix: &Vec<Vec<f64>>) -> Vec<Vec<f64>> {
         bar.set_position(i as u64);
 
         (i..samples).into_par_iter().for_each(|j| {
-            let dist: f64 = pairwise_distance_par(&coverage_matrix[i], &coverage_matrix[j]);
+            let dist: f64 = pairwise_distance_simd(&coverage_matrix[i], &coverage_matrix[j]);
             let mut distance_matrix = distance_matrix.lock().unwrap();
             distance_matrix[i][j] = dist;
         })
@@ -178,7 +167,7 @@ mod tests {
         let dist: f64 = 943.6763216272834;
         assert_eq!(precomputed_dist, dist);
 
-        assert_eq!(pairwise_distance_par(&f, &s),
+        assert_eq!(pairwise_distance(&f, &s),
                    dist);
         
 
