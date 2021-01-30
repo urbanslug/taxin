@@ -5,6 +5,32 @@ use std::iter::Sum;
 use indicatif::{ProgressBar, ProgressStyle};
 use num_format::{Locale, ToFormattedString};
 
+use slipstream::iterators::Vectorizable;
+use slipstream::types::*;
+
+use rayon::prelude::*;
+use std::sync::Mutex;
+
+#[allow(dead_code)]
+fn pairwise_distance_simd(a: &Vec<f64>, b: &Vec<f64>) -> f64 {
+    let mut x = 0_f64;
+
+    for i in (&a[..], &b[..]).vectorize() {
+        let (left, right): (f64x4, f64x4) = i;
+
+        let s: f64 = left
+            .into_iter()
+            .zip(right.iter())
+            .map(|(a, b)| num::pow(*a - *b, 2))
+            .sum::<f64>()
+            .sqrt();
+
+        println!("s: {}", s);
+        x = s;
+    }
+    x
+}
+
 fn pairwise_distance<'a, T: 'a + Float + Sum>(
     left: impl IntoIterator<Item = &'a T>,
     right: impl IntoIterator<Item = &'a T>,
@@ -16,7 +42,8 @@ fn pairwise_distance<'a, T: 'a + Float + Sum>(
         .sqrt()
 }
 
-pub fn eucledian<T: Float + Sum>(coverage_matrix: &Vec<Vec<T>>) -> Vec<Vec<T>> {
+#[allow(dead_code)]
+fn eucledian_simd(coverage_matrix: &Vec<Vec<f64>>) -> Vec<Vec<f64>> {
     let samples = coverage_matrix.len();
     let columns = coverage_matrix.get(0).unwrap_or(&Vec::new()).len();
 
@@ -27,7 +54,7 @@ pub fn eucledian<T: Float + Sum>(coverage_matrix: &Vec<Vec<T>>) -> Vec<Vec<T>> {
     );
 
     // create a samples x samples distance matrix
-    let mut distance_matrix: Vec<Vec<T>> = vec![vec![num::zero(); samples]; samples];
+    let distance_matrix: Vec<Vec<f64>> = vec![vec![num::zero(); samples]; samples];
 
     let bar = ProgressBar::new(samples as u64);
     let t =
@@ -38,18 +65,64 @@ pub fn eucledian<T: Float + Sum>(coverage_matrix: &Vec<Vec<T>>) -> Vec<Vec<T>> {
             .progress_chars("#>-"),
     );
 
+    let distance_matrix = Mutex::new(distance_matrix);
+
     // for each sample calculate its distance to every other
+    // https://github.com/rayon-rs/rayon/issues/699#issuecomment-538509309
     for i in 0..samples {
         bar.set_position(i as u64);
-        for j in i..samples {
-            let dist: T = pairwise_distance(&coverage_matrix[i], &coverage_matrix[j]);
+
+        (i..samples).into_par_iter().for_each(|j| {
+            let dist: f64 = pairwise_distance_simd(&coverage_matrix[i], &coverage_matrix[j]);
+            let mut distance_matrix = distance_matrix.lock().unwrap();
             distance_matrix[i][j] = dist;
-        }
+        })
     }
 
     bar.finish();
 
-    distance_matrix
+    distance_matrix.into_inner().unwrap()
+}
+
+pub fn eucledian<T: Float + Sum + Send + Sync>(coverage_matrix: &Vec<Vec<T>>) -> Vec<Vec<T>> {
+    let samples = coverage_matrix.len();
+    let columns = coverage_matrix.get(0).unwrap_or(&Vec::new()).len();
+
+    println!(
+        "Dimensions: {} samples by approx {} nodes",
+        samples.to_formatted_string(&Locale::en),
+        columns.to_formatted_string(&Locale::en)
+    );
+
+    // create a samples x samples distance matrix
+    let distance_matrix: Vec<Vec<T>> = vec![vec![num::zero(); samples]; samples];
+
+    let bar = ProgressBar::new(samples as u64);
+    let t =
+        "{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {bytes}/{total_bytes} ({eta})";
+    bar.set_style(
+        ProgressStyle::default_bar()
+            .template(t)
+            .progress_chars("#>-"),
+    );
+
+    let distance_matrix = Mutex::new(distance_matrix);
+
+    // for each sample calculate its distance to every other
+    // https://github.com/rayon-rs/rayon/issues/699#issuecomment-538509309
+    for i in 0..samples {
+        bar.set_position(i as u64);
+
+        (i..samples).into_par_iter().for_each(|j| {
+            let dist: T = pairwise_distance(&coverage_matrix[i], &coverage_matrix[j]);
+            let mut distance_matrix = distance_matrix.lock().unwrap();
+            distance_matrix[i][j] = dist;
+        })
+    }
+
+    bar.finish();
+
+    distance_matrix.into_inner().unwrap()
 }
 
 #[cfg(test)]
@@ -79,6 +152,7 @@ mod tests {
         ];
 
         assert_eq!(eucledian(&m), k);
+        assert_eq!(eucledian_simd(&m), k);
     }
 
     #[test]
@@ -101,6 +175,20 @@ mod tests {
         // Same
         let precomputed_dist: f64 = pairwise_distance(&f, &f);
         assert_eq!(precomputed_dist, 0_f64);
+    }
+
+    #[test]
+    fn test_pairwise_distance_simd() {
+        let l = vec![102, 3, 394, 87]
+            .into_iter()
+            .map(|x| x as f64)
+            .collect();
+        let r = vec![67, 83, 124, 987]
+            .into_iter()
+            .map(|x| x as f64)
+            .collect();
+
+        pairwise_distance_simd(&l, &r);
     }
 }
 

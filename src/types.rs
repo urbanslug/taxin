@@ -23,6 +23,7 @@ impl CoverageVector {
         gen(io::wrap_from_str(data))
     }
 
+    // TODO: test?
     // get the data field as a matrix of Vec<Vec<f64>>
     pub fn extract_data_matrix(&self) -> Vec<Vec<f64>> {
         // is this efficient?
