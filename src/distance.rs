@@ -5,8 +5,8 @@ use std::iter::Sum;
 use indicatif::{ProgressBar, ProgressStyle};
 use num_format::{Locale, ToFormattedString};
 
-use slipstream::iterators::Vectorizable;
 use slipstream::types::*;
+use slipstream::Vector;
 
 use rayon::prelude::*;
 use std::sync::Mutex;
@@ -15,19 +15,18 @@ use std::sync::Mutex;
 fn pairwise_distance_simd(a: &Vec<f64>, b: &Vec<f64>) -> f64 {
     let mut x = 0_f64;
 
-    for i in (&a[..], &b[..]).vectorize() {
-        let (left, right): (f64x4, f64x4) = i;
+    let a = slipstream::vectorize_pad(&a[..], f64x4::splat(0_f64));
+    let b = slipstream::vectorize_pad(&b[..], f64x4::splat(0_f64));
 
-        let s: f64 = left
+    for (left, right) in a.zip(b) {
+        x += left
             .into_iter()
             .zip(right.iter())
             .map(|(a, b)| num::pow(*a - *b, 2))
             .sum::<f64>()
             .sqrt();
-
-        println!("s: {}", s);
-        x = s;
     }
+
     x
 }
 
